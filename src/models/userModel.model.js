@@ -16,12 +16,18 @@ const userSchema = new mongoose.Schema(
         },
         password: {
             type: String,
-            required: true,
+            // required: true,
+        },
+        picture: {
+            type: String,
+            default:
+                "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg",
         },
         role: {
             type: String,
-            enum: ["user", "admin"], // Define possible roles
-            default: "user", // Set a default role
+            enum: ["Admin", "Manager", "User"],
+            default: "User",
+            // default: "user", // Set a default role
         },
     },
     {

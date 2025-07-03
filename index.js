@@ -25,15 +25,18 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(
     cors({
-        origin: process.env.CORS_ORIGIN,
+        origin: process.env.ORIGIN, // only allow this origin
         credentials: true,
+        methods: ["GET", "POST"], // only allow GET and POST
     }),
 );
 
 // --- API Routes ---
 import uploadRoutes from "./src/routes/imageRoute.js";
+import loginWithGoogle from "./src/routes/loginWithGoogle.js";
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/upload", uploadRoutes);
+app.use("/api/v1/user", loginWithGoogle);
 
 app.get("/health", (req, res) => {
     res.json({ message: "API is running..." });
