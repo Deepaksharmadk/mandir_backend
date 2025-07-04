@@ -60,3 +60,23 @@ export const uploadImage = async (req, res) => {
         }
     }
 };
+
+export const GetallImages = async (req, res) => {
+    try {
+        const images = await ImageModel.find()
+            .sort({ createdAt: -1 })
+            .populate("creater", "name email");
+
+        if (!images.length) {
+            return res.status(404).json({ message: "No images found." });
+        }
+
+        return res.status(200).json({
+            message: "Images retrieved successfully",
+            images,
+        });
+    } catch (error) {
+        // console.error("❌ Error retrieving images:", error);
+        return res.status(500).json({ error: error.message });
+    }
+};

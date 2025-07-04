@@ -36,7 +36,7 @@ app.use(
 import uploadRoutes from "./src/routes/imageRoute.js";
 import loginWithGoogle from "./src/routes/loginWithGoogle.js";
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/upload", uploadRoutes);
+app.use("/api/v1/image", uploadRoutes);
 app.use("/api/v1/user", loginWithGoogle);
 
 app.get("/health", (req, res) => {
