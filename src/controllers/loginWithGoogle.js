@@ -15,8 +15,8 @@ export const loginWithGoogle = async (req, res, next) => {
         const { name, email, picture } = userData;
         // console.log(`google data`, userData);
 
-        let user = await User.findOne({ email }).select("-__v");
-
+        let user = await User.findOne({ email }).select("-__v -password");
+        console.log(`userresponsegoogle`, user);
         if (user) {
             if (user.deleted) {
                 return res.status(403).json({
@@ -42,13 +42,16 @@ export const loginWithGoogle = async (req, res, next) => {
         // Set cookie
         res.cookie("token", token, {
             httpOnly: true,
-            secure: true, // send only over HTTPS in production
-            // sameSite: "strict",
+            secure: true,
+            signed: true,
+            // send only over HTTPS in sameSite: 'lax',    // Or 'strict', depending on
+            // path: "/",
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
         return res.status(200).json({
             message: "logged in",
+            user,
         });
     } catch (err) {
         next(err);

@@ -5,8 +5,8 @@ export const protect = async (req, res, next) => {
     let token;
 
     // Check if token exists in cookies
-    if (req.cookies && req.cookies.token) {
-        token = req.cookies.token;
+    if (req.signedCookies && req.signedCookies.token) {
+        token = req.signedCookies.token;
     }
 
     if (!token) {

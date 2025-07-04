@@ -89,7 +89,9 @@ export const login = async (req, res) => {
         console.log(`t`, token);
         const options = {
             httpOnly: true, // Prevents client-side JS from accessing the cookie
-            secure: true, // Only send over HTTPS in production
+            secure: true,
+            signed: true, // Sign the cookie to prevent tampering
+            // Only send over HTTPS in production
             expires: new Date(
                 Date.now() + 24 * 60 * 60 * 1000, // 1 day
             ),

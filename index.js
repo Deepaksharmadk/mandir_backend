@@ -13,15 +13,16 @@ connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-//clodinary setup
 
+const jwtSecret = process.env.JWT_SECRET || "default";
+// console.log(`JWT Secret: ${jwtSecret}`);
 // --- Middlewares ---
 // To parse JSON request bodies
 app.use(express.json());
 //serve the static files
 app.use(express.static("public"));
 // To parse cookies
-app.use(cookieParser());
+app.use(cookieParser(jwtSecret));
 app.use(express.urlencoded({ extended: true }));
 app.use(
     cors({
