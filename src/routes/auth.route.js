@@ -2,8 +2,10 @@ import express from "express";
 
 import {
     checkAuth,
+    forgotPassword,
     login,
     logout,
+    resetPassword,
     signup,
 } from "../controllers/auth.Controller.js";
 import { authorize, protect } from "../middleware/auth.middleware.js";
@@ -16,6 +18,8 @@ const router = express.Router();
 router.post("/signup", signup);
 router.post("/login", login);
 router.post("/logout", logout);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 // Protected route
 router.get("/profile", protect, checkAuth);

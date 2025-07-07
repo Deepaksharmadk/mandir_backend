@@ -3,6 +3,13 @@ import { generateToken, verifyPassword } from "../utils/utils.js";
 import argon2 from "argon2";
 
 import { loginSchema, signupSchema } from "../validators/auth.validator.js";
+import { hashPassword } from "../utils/utils.js";
+import {
+    forgotPasswordValidator,
+    resetPasswordOTPValidator,
+} from "../validators/auth.validator.js";
+import { sendEmail } from "../utils/mailService.js";
+import { getResetPasswordTemplate } from "../utils/getResetPasswordTemplate.js";
 
 // --- SIGNUP ---
 export const signup = async (req, res) => {
@@ -131,4 +138,66 @@ export const checkAuth = async (req, res) => {
     // If this function is reached, the authMiddleware has already verified the user
     // and attached the user object to req.user
     res.status(200).json({ success: true, user: req.user });
+};
+
+export const forgotPassword = async (req, res) => {
+    const parse = forgotPasswordValidator.safeParse(req.body);
+    if (!parse.success) {
+        return res
+            .status(400)
+            .json({ errors: parse.error.issues.map((i) => i.message) });
+    }
+    const { email } = parse.data;
+    const user = await User.findOne({ email });
+    if (!user) {
+        // For security, don’t reveal whether email exists
+        return res.status(200).json({
+            message:
+                "If that email is in our system, you’ll receive an OTP shortly.",
+        });
+    }
+
+    // Generate 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    user.resetPasswordOTP = otp;
+    user.resetPasswordOTPExpiry = Date.now() + 10 * 60 * 1000; // 10min
+    await user.save();
+
+    // Send email using our HTML template
+    await sendEmail({
+        to: email,
+        subject: "Your Password Reset Code",
+        text: `Your password reset code is ${otp}. It expires in 10 minutes.`, // plain-text fallback
+        html: getResetPasswordTemplate(user.name, otp),
+    });
+
+    res.status(200).json({ message: "OTP sent to your email." });
+};
+
+export const resetPassword = async (req, res) => {
+    const parse = resetPasswordOTPValidator.safeParse(req.body);
+    if (!parse.success) {
+        return res
+            .status(400)
+            .json({ errors: parse.error.issues.map((i) => i.message) });
+    }
+    const { email, otp, password } = parse.data;
+    const user = await User.findOne({ email });
+    if (
+        !user ||
+        user.resetPasswordOTP !== otp ||
+        Date.now() > user.resetPasswordOTPExpiry
+    ) {
+        return res.status(400).json({ message: "Invalid or expired OTP." });
+    }
+
+    // Hash and save new password
+    const hashed = await argon2.hash(password);
+    console.log(`hashed`, hashed);
+    user.password = hashed;
+    user.resetPasswordOTP = undefined;
+    user.resetPasswordOTPExpiry = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successfully." });
 };

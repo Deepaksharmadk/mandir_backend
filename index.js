@@ -45,9 +45,11 @@ app.use(
 // --- API Routes ---
 import uploadRoutes from "./src/routes/imageRoute.js";
 import loginWithGoogle from "./src/routes/loginWithGoogle.js";
+import galleryRoutes from "./src/routes/galleryRoute.js";
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/image", uploadRoutes);
 app.use("/api/v1/user", loginWithGoogle);
+app.use("/api/v1/gallery", galleryRoutes);
 
 app.get("/health", (req, res) => {
     res.json({ message: "API is running..." });

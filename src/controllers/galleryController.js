@@ -1,83 +1,89 @@
-// // controllers/image.controller.js
-// import fs from "fs";
-// import { GalleryImageModel } from "../models/gallaryModel.js";
-// import { uploadOnCloudinary } from "../utils/cloudinary.js";
-// import { join } from "path";
-// const { dirname } = import.meta;
-// // console.log(` dir ${process.cwd()}`);
-// // Step 3: Build path to /public/temp from current file
-// const tempDir = join(dirname, "..", "..", "public", "temp");
-// // console.log(tempDir);
+// controllers/image.controller.js
+import fs from "fs";
+import { GalleryImageModel } from "../models/gallaryModel.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { join } from "path";
+const { dirname } = import.meta;
+// console.log(` dir ${process.cwd()}`);
+// Step 3: Build path to /public/temp from current file
+const tempDir = join(dirname, "..", "..", "public", "temp");
+// console.log(tempDir);
 
-// export const galleryUploadImage = async (req, res) => {
-//     const { imageName } = req.body;
-//     const localCloudUrls = [];
-//     const uploadedFiles = req.files || [];
+export const uploadGalleryImage = async (req, res) => {
+    const { imageName } = req.body;
+    console.log("Image Name:", imageName);
+    const localCloudUrls = [];
+    const uploadedFiles = req.files || [];
+    console.log("Uploaded Files:", uploadedFiles);
 
-//     if (!uploadedFiles.length) {
-//         return res.status(400).json({ message: "No files uploaded." });
-//     }
+    if (!uploadedFiles.length) {
+        return res.status(400).json({ message: "No files uploaded." });
+    }
 
-//     try {
-//         const result = await uploadOnCloudinary(filePath);
-//         // for (const file of uploadedFiles) {
-//         //     const filePath = file.path;
+    try {
+        for (const file of uploadedFiles) {
+            const filePath = file.path;
+            console.log("File Path:", filePath);
+            const result = await uploadOnCloudinary(filePath, {
+                folder: "gallery",
+            });
 
-//         //     if (result?.secure_url) {
-//         //         localCloudUrls.push(result.secure_url);
-//         //     } else {
-//         //     }
-//         // }
+            if (result?.secure_url) {
+                localCloudUrls.push(result.secure_url);
+            } else {
+            }
+        }
 
-//         if (!localCloudUrls.length) {
-//             return res
-//                 .status(500)
-//                 .json({ message: "Upload to Cloudinary failed." });
-//         }
+        if (!localCloudUrls.length) {
+            return res
+                .status(500)
+                .json({ message: "Upload to Cloudinary failed." });
+        }
 
-//         const savedData = await GalleryImageModel.create({
-//             imageUrl: localCloudUrls,
-//             creater: req.user._id,
-//         });
+        const savedData = await GalleryImageModel.create({
+            imageName,
+            imageUrl: localCloudUrls,
+            creater: req.user._id,
+        });
 
-//         return res.status(201).json({
-//             message: "✅ File(s) uploaded successfully",
-//             userUploadedData: savedData,
-//         });
-//     } catch (error) {
-//         // console.error("❌ Unexpected error during upload:", error);
-//         return res.status(500).json({ error: error.message });
-//     } finally {
-//         for (const file of uploadedFiles) {
-//             try {
-//                 const fullPath = join(tempDir, file.filename);
-//                 fs.unlinkSync(fullPath);
-//             } catch (err) {
-//                 // console.warn(
-//                 //     `⚠️ Cleanup failed for ${file.filename}:`,
-//                 //     err.message,
-//                 // );
-//             }
-//         }
-//     }
-// };
+        return res.status(201).json({
+            message: "✅ File(s) uploaded successfully",
+            userUploadedData: savedData,
+        });
+    } catch (error) {
+        // console.error("❌ Unexpected error during upload:", error);
+        return res.status(500).json({ error: error.message });
+    } finally {
+        for (const file of uploadedFiles) {
+            try {
+                const fullPath = join(tempDir, file.filename);
+                fs.unlinkSync(fullPath);
+            } catch (err) {
+                // console.warn(
+                //     `⚠️ Cleanup failed for ${file.filename}:`,
+                //     err.message,
+                // );
+            }
+        }
+    }
+};
 
-// export const GetallImages = async (req, res) => {
-//     try {
-//         const images = await ImageModel.find()
-//             .sort({ createdAt: -1 })
-//             .populate("creater", "name email");
+export const GetallImages = async (req, res) => {
+    try {
+        const images = await ImageModel.find()
+            .sort({ createdAt: -1 })
+            .populate("creater", "name email");
 
-//         if (!images.length) {
-//             return res.status(404).json({ message: "No images found." });
-//         }
+        if (!images.length) {
+            return res.status(404).json({ message: "No images found." });
+        }
 
-//         return res.status(200).json({
-//             message: "Images retrieved successfully",
-//             images,
-//         });
-//     } catch (error) {
-//         // console.error("❌ Error retrieving images:", error);
-//         return res.status(500).json({ error: error.message });
-//     }
-// };
+        return res.status(200).json({
+            message: "Images retrieved successfully",
+            images,
+        });
+    } catch (error) {
+        // console.error("❌ Error retrieving images:", error);
+        return res.status(500).json({ error: error.message });
+    }
+};

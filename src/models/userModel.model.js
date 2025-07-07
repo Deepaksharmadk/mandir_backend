@@ -29,6 +29,9 @@ const userSchema = new mongoose.Schema(
             default: "User",
             // default: "user", // Set a default role
         },
+        // … existing fields …
+        resetPasswordOTP: Number,
+        resetPasswordOTPExpiry: Date,
     },
     {
         timestamps: true, // Adds createdAt and updatedAt timestamps
