@@ -24,11 +24,21 @@ app.use(express.static("public"));
 // To parse cookies
 app.use(cookieParser(jwtSecret));
 app.use(express.urlencoded({ extended: true }));
+const allowedOrigins = [process.env.ORIGIN, "http://localhost:3000"];
+
 app.use(
     cors({
-        origin: [process.env.ORIGIN, "http://localhost:3000"], // only allow this origin
+        origin: function (origin, callback) {
+            // allow requests with no origin like mobile apps or curl
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            } else {
+                return callback(new Error("Not allowed by CORS"));
+            }
+        },
         credentials: true,
-        methods: ["GET", "POST"], // only allow GET and POST
+        methods: ["GET", "POST"],
     }),
 );
 
