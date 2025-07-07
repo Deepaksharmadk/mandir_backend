@@ -26,7 +26,7 @@ app.use(cookieParser(jwtSecret));
 app.use(express.urlencoded({ extended: true }));
 app.use(
     cors({
-        origin: process.env.ORIGIN, // only allow this origin
+        origin: [process.env.ORIGIN, "http://localhost:3000"], // only allow this origin
         credentials: true,
         methods: ["GET", "POST"], // only allow GET and POST
     }),
