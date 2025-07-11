@@ -22,6 +22,6 @@ export const forgotPasswordValidator = z.object({
 
 export const resetPasswordOTPValidator = z.object({
     email: z.string().regex(emailRegex, "Invalid email address"),
-    otp: z.number(),
+    otp: z.string(),
     password: z.string().regex(passwordRegex, "Invalid password"),
 });

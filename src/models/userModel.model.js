@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema(
             // default: "user", // Set a default role
         },
         // … existing fields …
-        resetPasswordOTP: Number,
+        resetPasswordOTP: String,
         resetPasswordOTPExpiry: Date,
     },
     {
