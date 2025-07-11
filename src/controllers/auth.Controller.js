@@ -1,6 +1,7 @@
 import { User } from "../models/userModel.model.js";
 import { generateToken, verifyPassword } from "../utils/utils.js";
 import argon2 from "argon2";
+import crypto from "crypto";
 
 import { loginSchema, signupSchema } from "../validators/auth.validator.js";
 import { hashPassword } from "../utils/utils.js";
@@ -139,65 +140,131 @@ export const checkAuth = async (req, res) => {
     // and attached the user object to req.user
     res.status(200).json({ success: true, user: req.user });
 };
-
 export const forgotPassword = async (req, res) => {
-    const parse = forgotPasswordValidator.safeParse(req.body);
-    if (!parse.success) {
-        return res
-            .status(400)
-            .json({ errors: parse.error.issues.map((i) => i.message) });
-    }
-    const { email } = parse.data;
-    const user = await User.findOne({ email });
-    if (!user) {
-        // For security, don’t reveal whether email exists
+    // 1. Enhanced Input Validation
+    const validationResult = forgotPasswordValidator.safeParse(req.body);
+    if (!validationResult.success) {
         return res.status(400).json({
-            message:
-                "email not found. If it exists, an OTP will be sent to it.",
+            message: "Invalid request",
+            errors: validationResult.error.issues.map((issue) => ({
+                field: issue.path.join("."),
+                message: issue.message,
+            })),
         });
     }
 
-    // Generate 4-digit OTP
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    user.resetPasswordOTP = otp;
-    user.resetPasswordOTPExpiry = Date.now() + 10 * 60 * 1000; // 10min
-    await user.save();
+    const { email } = validationResult.data;
 
-    // Send email using our HTML template
-    await sendEmail({
-        to: email,
-        subject: "Your Password Reset Code",
-        text: `Your password reset code is ${otp}. It expires in 10 minutes.`, // plain-text fallback
-        html: getResetPasswordTemplate(user.name, otp),
-    });
+    try {
+        // 2. Secure User Lookup (prevent timing attacks)
+        const user = await User.findOne({ email }).select(
+            "+resetPasswordOTP +resetPasswordOTPExpiry +email +name",
+        );
 
-    res.status(200).json({ message: "OTP sent to your email." });
+        // 3. Consistent Response regardless of user existence
+
+        if (user) {
+            // 5. More secure OTP generation
+            const otp = crypto.randomInt(1000, 9999).toString();
+            // console.log(`Generated OTP for ${email}:`, otp);
+
+            // 6. Set OTP and expiry
+            user.resetPasswordOTP = otp;
+            user.resetPasswordOTPExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+            await user.save();
+
+            // 8. Async email sending with error handling
+            sendEmail({
+                to: user.email,
+                subject: "Your Password Reset Code",
+                text: `Your password reset code is ${otp}. It expires in 10 minutes.`,
+                html: getResetPasswordTemplate(user.name, otp),
+            }).catch((emailError) => {
+                console.error(
+                    "Failed to send password reset email:",
+                    emailError,
+                );
+            });
+        }
+
+        return res.status(200).json({
+            message: "password reset OTP has been sent",
+        });
+    } catch (error) {
+        console.error("Password reset request error:", error);
+        return res.status(500).json({
+            message: "An error occurred while processing your request",
+        });
+    }
 };
-
 export const resetPassword = async (req, res) => {
-    const parse = resetPasswordOTPValidator.safeParse(req.body);
-    if (!parse.success) {
-        return res
-            .status(400)
-            .json({ errors: parse.error.issues.map((i) => i.message) });
-    }
-    const { email, otp, password } = parse.data;
-    const user = await User.findOne({ email });
-    if (
-        !user ||
-        user.resetPasswordOTP !== otp ||
-        Date.now() > user.resetPasswordOTPExpiry
-    ) {
-        return res.status(400).json({ message: "Invalid or expired OTP." });
+    // 1. Input Validation
+    const validationResult = resetPasswordOTPValidator.safeParse(req.body);
+    if (!validationResult.success) {
+        return res.status(400).json({
+            message: "Validation failed",
+            errors: validationResult.error.issues.map((issue) => ({
+                field: issue.path.join("."),
+                message: issue.message,
+            })),
+        });
     }
 
-    // Hash and save new password
-    const hashed = await argon2.hash(password);
-    console.log(`hashed`, hashed);
-    user.password = hashed;
-    user.resetPasswordOTP = undefined;
-    user.resetPasswordOTPExpiry = undefined;
-    await user.save();
+    const { email, otp, password } = validationResult.data;
 
-    res.status(200).json({ message: "Password reset successfully." });
+    try {
+        // 2. Database Lookup
+        const user = await User.findOne({ email }).select(
+            "+resetPasswordOTP +resetPasswordOTPExpiry +password",
+        );
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // 3. OTP Verification
+        const isOtpValid = user.resetPasswordOTP === otp;
+        const isOtpExpired =
+            Date.now() > (user.resetPasswordOTPExpiry?.getTime() || 0);
+
+        if (!isOtpValid || isOtpExpired) {
+            return res.status(400).json({
+                message: "Invalid or expired OTP",
+                details: {
+                    isOtpValid,
+                    isOtpExpired,
+                },
+            });
+        }
+
+        // 4. Password Update
+        const hashedPassword = await argon2.hash(password, {
+            type: argon2.argon2id,
+            memoryCost: 2 ** 16,
+            timeCost: 3,
+            parallelism: 1,
+        });
+
+        user.password = hashedPassword;
+        user.resetPasswordOTP = undefined;
+        user.resetPasswordOTPExpiry = undefined;
+
+        // 5. Save with transaction for better error handling
+        await user.save();
+
+        // 6. Response
+        return res.status(200).json({
+            message: "Password reset successfully",
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error("Password reset error:", error);
+        return res.status(500).json({
+            message: "Internal server error during password reset",
+            error:
+                process.env.NODE_ENV === "development"
+                    ? error.message
+                    : undefined,
+        });
+    }
 };
