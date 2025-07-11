@@ -151,9 +151,9 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
         // For security, don’t reveal whether email exists
-        return res.status(200).json({
+        return res.status(400).json({
             message:
-                "If that email is in our system, you’ll receive an OTP shortly.",
+                "email not found. If it exists, an OTP will be sent to it.",
         });
     }
 

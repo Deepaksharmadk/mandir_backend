@@ -92,16 +92,12 @@ export function getResetPasswordTemplate(
               </td>
             </tr>
   
-        //     <!-- Footer -->
-        //     <tr>
-        //       <td class="footer">
-        //         <p>Your App Inc., 1234 Main Street, Somewhere, 12345</p>
-        //         <p><a href="https://yourapp.example.com/unsubscribe">Unsubscribe</a> • <a href="https://yourapp.example.com/support">Support</a></p>
-        //       </td>
-        //     </tr>
-        //   </table>
-        </td>
-      </tr>
+            <!-- Footer -->
+            <tr>
+              <td class="footer">
+                <p>&copy; 2023 Your App Name. All rights reserved.</p>
+              </td>
+            </tr>
     </table>
   </body>
   </html>`;
